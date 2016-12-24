@@ -1,0 +1,120 @@
+plugins {
+    id 'java'
+    id 'idea'
+    id 'eclipse'
+    id 'com.github.hierynomus.license' version '0.12.1'
+    id 'ninja.miserable.blossom' version '1.0.1'
+    id 'maven'
+    id 'com.github.johnrengelman.shadow' version '1.2.3'
+    id "com.qixalite.spongestart" version "1.4.3"
+}
+
+ext.spongeapi = '4.1.0'
+description = 'The Ultimate Essentials Plugin.'
+ext.url = 'http://nucleuspowered.org'
+
+group 'io.github.nucleuspowered'
+version '0.15.0-4.1'
+
+def qsmlDep = "uk.co.drnaylor:quickstart-moduleloader:0.4.0"
+
+defaultTasks 'licenseFormat'
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+repositories {
+    jcenter()
+    maven {
+        name 'Sponge maven repo'
+        url 'http://repo.spongepowered.org/maven'
+    }
+    maven {
+        name 'drnaylor'
+        url 'http://repo.drnaylor.co.uk/artifactory/list/quickstart'
+    }
+    maven {
+        url 'https://jitpack.io'
+    }
+}
+
+dependencies {
+    compile "org.spongepowered:spongeapi:4.1.0"
+    compile qsmlDep
+    compile "com.github.hsyyid:EssentialCmds:v8.1.7"
+
+    testCompile "junit:junit:4.12"
+    testCompile "org.mockito:mockito-all:1.10.19"
+    testCompile "org.powermock:powermock-module-junit4:1.6.4"
+    testCompile "org.powermock:powermock-api-mockito:1.6.4"
+}
+
+license {
+    ext.name = project.name
+
+    exclude "**/*.info"
+    exclude "assets/**"
+    exclude "*.properties"
+
+    header file('HEADER.txt')
+    sourceSets = project.sourceSets
+
+    ignoreFailures false
+    strictCheck true
+
+    mapping {
+        java = 'SLASHSTAR_STYLE'
+    }
+}
+
+spongestart{
+    eula true
+}
+
+blossom {
+    def location = 'src/main/java/io/github/nucleuspowered/nucleus/PluginInfo.java'
+
+    replaceToken '@name@', project.name, location
+    replaceToken '@version@', project.version, location
+    replaceToken '@gitHash@', getGitHash(), location
+
+    replaceToken '@description@', project.description, location
+    replaceToken '@url@', project.url, location
+}
+
+jar {
+    manifest {
+        attributes  'Implementation-Title': project.name,
+                'Implementation-Version': version,
+                'SpongeAPI-Version': project.spongeapi,
+                'Git-Hash': getGitHash()
+    }
+}
+
+task sourcesJar(type: Jar, dependsOn: classes) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    classifier = 'javadoc'
+    from javadoc.destinationDir
+}
+
+artifacts {
+    archives sourcesJar
+    archives javadocJar
+}
+
+def private String getGitHash() {
+    def process = 'git rev-parse --short HEAD'.execute();
+    process.waitFor();
+    return process.exitValue() ? 'unknown' : process.text.trim();
+}
+
+shadowJar {
+    dependencies {
+        include(dependency(qsmlDep))
+    }
+}
+build.dependsOn(shadowJar)
